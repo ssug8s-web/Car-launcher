@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarOS Launcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #080c14;
+    --bg-panel: #0d1422;
+    --bg-card: #121a2e;
+    --bg-glass: rgba(20, 30, 55, 0.85);
+    --accent-blue: #00aaff;
+    --accent-cyan: #00e5ff;
+    --accent-amber: #ffaa00;
+    --accent-green: #00e676;
+    --accent-red: #ff3d5a;
+    --text-primary: #e8f0ff;
+    --text-secondary: #7a8fbb;
+    --text-dim: #3a4a6a;
+    --border: rgba(0, 170, 255, 0.15);
+    --border-bright: rgba(0, 170, 255, 0.4);
+    --glow-blue: 0 0 20px rgba(0,170,255,0.3);
+    --glow-cyan: 0 0 20px rgba(0,229,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    font-family: 'Noto Sans KR', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP STATUS BAR ── */
+  .statusbar {
+    height: 44px;
+    background: rgba(8,12,20,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    backdrop-filter: blur(10px);
+  }
+  .statusbar-left { display: flex; align-items: center; gap: 16px; }
+  .statusbar-center { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; color: var(--accent-blue); letter-spacing: 3px; }
+  .statusbar-right { display: flex; align-items: center; gap: 14px; }
+
+  .status-time { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .status-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+  .status-temp { color: var(--accent-amber); font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600; }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* ── LEFT PANEL (Music) 30% ── */
+  .panel-music {
+    width: 30%;
+    background: linear-gradient(160deg, #0d1422 0%, #080e1c 100%);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .panel-music::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), transparent);
+    animation: scanline 3s ease-in-out infinite;
+  }
+
+  @keyframes scanline {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* Music Panel Header */
+  .music-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+
+  .yt-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,0,0,0.15);
+    border: 1px solid rgba(255,0,0,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+  .yt-badge svg { width: 14px; height: 14px; }
+  .yt-badge span { font-size: 10px; font-weight: 700; color: #ff4444; letter-spacing: 1px; }
+
+  /* App Selector Tabs */
+  .music-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .music-tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+  }
+  .music-tab:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .music-tab.active {
+    background: rgba(0,170,255,0.12);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
+  }
+  .music-tab svg { width: 20px; height: 20px; }
+  .music-tab span { font-size: 9px; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Now Playing Card */
+  .now-playing {
+    margin: 12px;
+    background: var(--bg-card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 14px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .now-playing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,170,255,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .np-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .np-cover-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+
+  .np-cover {
+    width: 56px; height: 56px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1a0533, #0d1a44);
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .np-cover .vinyl {
+    width: 100%; height: 100%;
+    background: conic-gradient(from 0deg, #1a0533, #2d0b5e, #0d1a44, #1a0533);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    animation: spin 8s linear infinite;
+    animation-play-state: var(--spin-state, running);
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .np-cover .vinyl::after {
+    content: '';
+    width: 16px; height: 16px;
+    background: var(--bg-card);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .np-info { flex: 1; min-width: 0; }
+  .np-song { font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-artist { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .np-album { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+  /* Progress */
+  .np-progress-wrap { margin-bottom: 10px; }
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+    margin-bottom: 4px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 38%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+    border-radius: 2px;
+    position: relative;
+    transition: width 1s linear;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -4px; top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 8px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--accent-blue);
+  }
+  .progress-times { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); font-family: 'Rajdhani', sans-serif; }
+
+  /* Controls */
+  .np-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ctrl-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover { color: var(--text-primary); }
+  .ctrl-btn svg { width: 18px; height: 18px; }
+  .ctrl-btn.play-btn {
+    width: 40px; height: 40px;
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 0 0 14px rgba(0,170,255,0.5);
+  }
+  .ctrl-btn.play-btn:hover { background: var(--accent-cyan); box-shadow: 0 0 20px rgba(0,229,255,0.6); }
+  .ctrl-btn.play-btn svg { width: 20px; height: 20px; }
+
+  /* Volume */
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0;
+    margin: 4px 0 2px;
+    flex-shrink: 0;
+  }
+  .vol-icon { color: var(--text-secondary); }
+  .vol-icon svg { width: 14px; height: 14px; }
+  .vol-slider {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+  }
+  .vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    box-shadow: 0 0 6px rgba(0,170,255,0.5);
+    cursor: pointer;
+  }
+
+  /* Playlist */
+  .playlist-section {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .playlist-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 8px 6px 6px;
+    text-transform: uppercase;
+  }
+
+  .playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .playlist-item:hover { background: rgba(0,170,255,0.06); border-color: var(--border); }
+  .playlist-item.playing { background: rgba(0,170,255,0.1); border-color: rgba(0,170,255,0.25); }
+
+  .pl-num {
+    width: 16px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .pl-playing-icon { color: var(--accent-blue); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .pl-thumb {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1a0533, #0d1a44);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .pl-info { flex: 1; min-width: 0; }
+  .pl-title { font-size: 12px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-artist { font-size: 10px; color: var(--text-secondary); }
+  .pl-dur { font-family: 'Rajdhani', sans-serif; font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+
+  /* ── RIGHT PANEL (Navigation) 70% ── */
+  .panel-navi {
+    width: 70%;
+    background: var(--bg-panel);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Navigation Header */
+  .navi-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: rgba(8,12,20,0.6);
+  }
+
+  .navi-title-row { display: flex; align-items: center; gap: 10px; }
+
+  /* Navi App Selector */
+  .navi-apps {
+    display: flex;
+    gap: 6px;
+  }
+
+  .navi-app-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+  }
+  .navi-app-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .navi-app-btn.active {
+    border-color: var(--accent-amber);
+    background: rgba(255,170,0,0.1);
+    color: var(--accent-amber);
+    box-shadow: 0 0 14px rgba(255,170,0,0.2);
+  }
+  .navi-app-btn svg { width: 18px; height: 18px; }
+  .navi-app-btn span { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+
+  .navi-right-controls { display: flex; align-items: center; gap: 10px; }
+
+  .navi-icon-btn {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .navi-icon-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .navi-icon-btn svg { width: 16px; height: 16px; }
+
+  /* Map Viewport */
+  .map-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #0a1525;
+  }
+
+  /* Simulated Map */
+  .map-canvas {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px),
+      #0a1525;
+    background-size: 40px 40px;
+  }
+
+  /* Road network simulation */
+  .map-roads {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .road-h {
+    position: absolute;
+    left: 0; right: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+  }
+  .road-h.major {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+  }
+  .road-h.highlight {
+    height: 8px;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,170,255,0.6) 30%, rgba(0,170,255,0.8) 50%, rgba(0,229,255,0.6) 70%, transparent 100%);
+    box-shadow: 0 0 10px rgba(0,170,255,0.4);
+    animation: routePulse 2s ease-in-out infinite;
+  }
+  @keyframes routePulse { 0%,100%{opacity:0.7} 50%{opacity:1} }
+
+  .road-v {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+    background: rgba(255,255,255,0.06);
+  }
+  .road-v.major { width: 6px; background: rgba(255,255,255,0.1); }
+
+  .road-diag {
+    position: absolute;
+    height: 5px;
+    background: rgba(255,255,255,0.07);
+    transform-origin: left center;
+  }
+
+  /* Map blocks (buildings) */
+  .map-block {
+    position: absolute;
+    background: rgba(30,45,80,0.6);
+    border: 1px solid rgba(50,70,110,0.4);
+    border-radius: 2px;
+  }
+
+  /* Route car marker */
+  .car-marker {
+    position: absolute;
+    top: 50%;
+    left: 45%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    animation: carFloat 3s ease-in-out infinite;
+  }
+  @keyframes carFloat { 0%,100%{transform:translate(-50%,-50%) translateY(0)} 50%{transform:translate(-50%,-50%) translateY(-3px)} }
+
+  .car-dot {
+    width: 18px; height: 18px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 4px rgba(0,170,255,0.3), 0 0 20px rgba(0,170,255,0.6);
+  }
+
+  .car-pulse {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 40px; height: 40px;
+    border: 2px solid rgba(0,170,255,0.4);
+    border-radius: 50%;
+    animation: carPulse 1.5s ease-out infinite;
+  }
+  @keyframes carPulse { to { transform: translate(-50%,-50%) scale(2); opacity: 0; } }
+
+  /* Destination marker */
+  .dest-marker {
+    position: absolute;
+    top: 22%;
+    left: 68%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dest-pin {
+    width: 14px; height: 14px;
+    background: var(--accent-red);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(255,61,90,0.7);
+  }
+  .dest-label {
+    margin-top: 4px;
+    background: rgba(255,61,90,0.15);
+    border: 1px solid rgba(255,61,90,0.4);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #ff3d5a;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  /* Map gradient overlay at top/bottom */
+  .map-overlay-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(to bottom, rgba(8,12,20,0.7), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .map-overlay-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 100px;
+    background: linear-gradient(to top, rgba(8,12,20,0.8), transparent);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* Navigation Info Overlay */
+  .navi-info-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .navi-next-turn {
+    background: rgba(10,16,30,0.92);
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--glow-blue);
+  }
+
+  .turn-arrow {
+    width: 36px; height: 36px;
+    background: var(--accent-blue);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .turn-arrow svg { width: 22px; height: 22px; color: white; }
+  .turn-info-text { }
+  .turn-dist { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; color: var(--accent-cyan); }
+  .turn-road { font-size: 12px; color: var(--text-secondary); }
+
+  .navi-speed-box {
+    background: rgba(10,16,30,0.92);
+    border: 2px solid var(--accent-amber);
+    border-radius: 10px;
+    padding: 6px 12px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 14px rgba(255,170,0,0.2);
+  }
+  .speed-val { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; color: var(--accent-amber); line-height: 1; }
+  .speed-unit { font-size: 10px; color: var(--text-secondary); letter-spacing: 1px; }
+  .speed-limit { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+  /* Bottom Info Bar */
+  .navi-bottom-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    padding: 0 16px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .navi-eta-card {
+    background: rgba(10,16,30,0.95);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    padding: 12px 18px;
+    backdrop-filter: blur(20px);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--glow-blue);
+  }
+
+  .eta-item { text-align: center; }
+  .eta-val { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .eta-unit { font-size: 10px; color: var(--text-secondary); margin-top: 2px; letter-spacing: 1px; }
+
+  .eta-divider { width: 1px; height: 36px; background: var(--border); }
+
+  .eta-dest { text-align: center; }
+  .eta-dest-name { font-size: 13px; font-weight: 700; color: var(--accent-cyan); }
+  .eta-dest-addr { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+  .navi-zoom-btns { display: flex; flex-direction: column; gap: 4px; }
+  .zoom-btn {
+    width: 36px; height: 36px;
+    background: rgba(10,16,30,0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .zoom-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+
+  /* Top right map controls */
+  .map-top-right {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .map-mode-btn {
+    background: rgba(10,16,30,0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .map-mode-btn.active { border-color: var(--accent-amber); color: var(--accent-amber); background: rgba(255,170,0,0.1); }
+  .map-mode-btn:hover:not(.active) { border-color: var(--border-bright); color: var(--text-primary); }
+
+  /* Search bar overlay */
+  .navi-search-bar {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: rgba(10,16,30,0.9);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 280px;
+    backdrop-filter: blur(10px);
+    cursor: text;
+    transition: border-color 0.2s;
+  }
+  .navi-search-bar:hover { border-color: var(--border-bright); }
+  .navi-search-bar svg { width: 14px; height: 14px; color: var(--text-secondary); flex-shrink: 0; }
+  .search-text { font-size: 12px; color: var(--text-secondary); }
+
+  /* Traffic pills */
+  .traffic-pills {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+  }
+  .traffic-pill {
+    background: rgba(10,16,30,0.85);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid;
+  }
+  .traffic-pill.green { color: var(--accent-green); border-color: rgba(0,230,118,0.3); }
+  .traffic-pill.amber { color: var(--accent-amber); border-color: rgba(255,170,0,0.3); }
+  .traffic-pill.red { color: var(--accent-red); border-color: rgba(255,61,90,0.3); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Divider handle */
+  .panel-divider {
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--accent-blue), var(--accent-cyan), var(--accent-blue), transparent);
+    flex-shrink: 0;
+    opacity: 0.5;
+    position: relative;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="statusbar-left">
+    <div class="status-item">
+      <div class="status-dot"></div>
+      <span>연결됨</span>
+    </div>
+    <div class="status-item">
+      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M1 6l4 4 4-4M9 10l4 4 4-4M17 14l4 4"/>
+      </svg>
+      <span>4G LTE</span>
+    </div>
+    <div class="status-temp">21°C ☀</div>
+  </div>
+  <div class="statusbar-center">CarOS</div>
+  <div class="statusbar-right">
+    <div class="status-item">
+      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+      <span>서울특별시 강남구</span>
+    </div>
+    <div class="status-time" id="clock">--:--</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ===== LEFT: MUSIC PANEL ===== -->
+  <div class="panel-music">
+    <div class="music-header">
+      <span class="panel-title">MUSIC</span>
+      <div class="yt-badge">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="color:#ff4444">
+          <path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5S5.75 5 4.19 5.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15.5v-7l6 3.5-6 3.5z"/>
+        </svg>
+        <span>YOUTUBE MUSIC</span>
+      </div>
+    </div>
+
+    <!-- App Tabs -->
+    <div class="music-tabs">
+      <button class="music-tab active" onclick="selectMusicApp('ytm', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="color:inherit">
+          <path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5S5.75 5 4.19 5.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15.5v-7l6 3.5-6 3.5z"/>
+        </svg>
+        <span>YT Music</span>
+      </button>
+      <button class="music-tab" onclick="selectMusicApp('spotify', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="color:inherit">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 14.39c-.2.33-.62.43-.95.23-2.6-1.59-5.87-1.95-9.73-1.07-.37.09-.74-.14-.83-.51-.09-.37.14-.74.51-.83 4.22-.96 7.84-.55 10.76 1.23.33.2.43.62.24.95zm1.24-2.76c-.25.4-.78.53-1.18.28-2.97-1.83-7.5-2.36-11.01-1.29-.45.14-.93-.12-1.07-.57-.14-.45.12-.93.57-1.07 4.01-1.22 8.99-.63 12.41 1.47.4.25.53.78.28 1.18zm.11-2.87C14.25 8.92 8.63 8.73 5.25 9.77c-.55.17-1.13-.14-1.3-.69-.17-.55.14-1.13.69-1.3 3.89-1.18 10.37-.95 14.44 1.51.48.29.64.91.35 1.4-.29.48-.91.64-1.44.07z"/>
+        </svg>
+        <span>Spotify</span>
+      </button>
+      <button class="music-tab" onclick="selectMusicApp('melon', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="color:inherit">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+        <span>멜론</span>
+      </button>
+    </div>
+
+    <!-- Now Playing -->
+    <div class="now-playing">
+      <div class="np-label">▶ NOW PLAYING</div>
+      <div class="np-cover-row">
+        <div class="np-cover" id="npCover">
+          <div class="vinyl" id="vinylDisc"></div>
+        </div>
+        <div class="np-info">
+          <div class="np-song" id="npSong">Blinding Lights</div>
+          <div class="np-artist" id="npArtist">The Weeknd</div>
+          <div class="np-album" id="npAlbum">After Hours · 2020</div>
+        </div>
+      </div>
+      <div class="np-progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-times">
+          <span id="currentTime">1:24</span>
+          <span>3:42</span>
+        </div>
+      </div>
+      <div class="np-controls">
+        <button class="ctrl-btn" onclick="toggleShuffle(this)" title="셔플">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="prevTrack()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button class="ctrl-btn play-btn" id="playBtn" onclick="togglePlay()">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="playIcon"><path d="M6 19h4V5H6v14zm8-14v14l11-7z"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="nextTrack()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 18 8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="toggleRepeat(this)" title="반복">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Volume -->
+    <div class="volume-row">
+      <div class="vol-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+      </div>
+      <input type="range" class="vol-slider" min="0" max="100" value="72" id="volSlider">
+      <div class="vol-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </div>
+    </div>
+
+    <!-- Playlist -->
+    <div class="playlist-section">
+      <div class="playlist-label">재생목록</div>
+      <div id="playlist"></div>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="panel-divider"></div>
+
+  <!-- ===== RIGHT: NAVIGATION PANEL ===== -->
+  <div class="panel-navi">
+    <div class="navi-header">
+      <div class="navi-title-row">
+        <span class="panel-title">NAVIGATION</span>
+      </div>
+      <div class="navi-apps" id="naviApps">
+        <button class="navi-app-btn active" onclick="selectNavi('kakao', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7.03 3 3 6.36 3 10.5c0 2.55 1.42 4.82 3.6 6.25-.16.59-.56 2.17-.63 2.5-.09.41.15.4.32.29.13-.09 2.1-1.42 2.95-2 .88.12 1.79.19 2.76.19 4.97 0 9-3.36 9-7.5S16.97 3 12 3z"/></svg>
+          <span>카카오맵</span>
+        </button>
+        <button class="navi-app-btn" onclick="selectNavi('tmap', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span>T맵</span>
+        </button>
+        <button class="navi-app-btn" onclick="selectNavi('naver', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7.5L20 20h-7.5L4 4z"/></svg>
+          <span>네이버</span>
+        </button>
+        <button class="navi-app-btn" onclick="selectNavi('google', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span>Google</span>
+        </button>
+      </div>
+      <div class="navi-right-controls">
+        <button class="navi-icon-btn" title="음성검색">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        </button>
+        <button class="navi-icon-btn" title="즐겨찾기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button class="navi-icon-btn" title="경로 설정">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-viewport">
+      <div class="map-canvas"></div>
+      <div class="map-roads" id="mapRoads"></div>
+      <div class="map-overlay-top"></div>
+      <div class="map-overlay-bottom"></div>
+
+      <!-- Car marker -->
+      <div class="car-marker">
+        <div class="car-pulse"></div>
+        <div class="car-dot"></div>
+      </div>
+
+      <!-- Destination marker -->
+      <div class="dest-marker">
+        <div class="dest-pin"></div>
+        <div class="dest-label">코엑스몰</div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="navi-search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="search-text">목적지를 검색하세요...</span>
+      </div>
+
+      <!-- Traffic pills -->
+      <div class="traffic-pills">
+        <div class="traffic-pill green"><div class="pill-dot"></div>현재구간 원활</div>
+        <div class="traffic-pill amber"><div class="pill-dot"></div>5km 전방 서행</div>
+        <div class="traffic-pill red"><div class="pill-dot"></div>올림픽대로 정체</div>
+      </div>
+
+      <!-- Nav Info Overlay -->
+      <div class="navi-info-overlay">
+        <div class="navi-next-turn">
+          <div class="turn-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="turn-info-text">
+            <div class="turn-dist">500m 후</div>
+            <div class="turn-road">우회전 → 테헤란로</div>
+          </div>
+        </div>
+        <div class="navi-speed-box">
+          <div class="speed-val" id="speedVal">62</div>
+          <div class="speed-unit">km/h</div>
+          <div class="speed-limit">제한 70</div>
+        </div>
+      </div>
+
+      <!-- Map mode buttons -->
+      <div class="map-top-right">
+        <div class="map-mode-btn active" onclick="setMapMode('drive', this)">드라이브</div>
+        <div class="map-mode-btn" onclick="setMapMode('3d', this)">3D</div>
+        <div class="map-mode-btn" onclick="setMapMode('traffic', this)">교통</div>
+        <div class="map-mode-btn" onclick="setMapMode('satellite', this)">위성</div>
+      </div>
+
+      <!-- Bottom ETA bar -->
+      <div class="navi-bottom-bar">
+        <div class="navi-eta-card">
+          <div class="eta-item">
+            <div class="eta-val" id="etaTime">18:42</div>
+            <div class="eta-unit">도착예상</div>
+          </div>
+          <div class="eta-divider"></div>
+          <div class="eta-item">
+            <div class="eta-val">23</div>
+            <div class="eta-unit">분 남음</div>
+          </div>
+          <div class="eta-divider"></div>
+          <div class="eta-item">
+            <div class="eta-val">12.4</div>
+            <div class="eta-unit">km 남음</div>
+          </div>
+          <div class="eta-divider"></div>
+          <div class="eta-dest">
+            <div class="eta-dest-name" id="destName">코엑스몰</div>
+            <div class="eta-dest-addr">서울 강남구 봉은사로</div>
+          </div>
+        </div>
+        <div class="navi-zoom-btns">
+          <button class="zoom-btn">+</button>
+          <button class="zoom-btn">−</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ── PLAYLIST DATA ──
+const tracks = [
+  { title: 'Blinding Lights', artist: 'The Weeknd', dur: '3:42', emoji: '🌙' },
+  { title: 'Dynamite', artist: 'BTS', dur: '3:19', emoji: '💫' },
+  { title: 'Levitating', artist: 'Dua Lipa', dur: '3:23', emoji: '✨' },
+  { title: 'Stay', artist: 'The Kid LAROI', dur: '2:21', emoji: '🔥' },
+  { title: 'good 4 u', artist: 'Olivia Rodrigo', dur: '2:58', emoji: '💥' },
+  { title: 'Peaches', artist: 'Justin Bieber', dur: '3:18', emoji: '🍑' },
+  { title: 'Butter', artist: 'BTS', dur: '2:44', emoji: '🧈' },
+  { title: 'Industry Baby', artist: 'Lil Nas X', dur: '3:32', emoji: '🎺' },
+];
+
+let currentTrack = 0;
+let isPlaying = true;
+
+function buildPlaylist() {
+  const container = document.getElementById('playlist');
+  container.innerHTML = '';
+  tracks.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'playlist-item' + (i === currentTrack ? ' playing' : '');
+    div.innerHTML = `
+      <div class="pl-num">${i === currentTrack
+        ? '<svg class="pl-playing-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>'
+        : (i + 1)}</div>
+      <div class="pl-thumb">${t.emoji}</div>
+      <div class="pl-info">
+        <div class="pl-title">${t.title}</div>
+        <div class="pl-artist">${t.artist}</div>
+      </div>
+      <div class="pl-dur">${t.dur}</div>`;
+    div.onclick = () => { currentTrack = i; loadTrack(); };
+    container.appendChild(div);
+  });
+}
+
+function loadTrack() {
+  const t = tracks[currentTrack];
+  document.getElementById('npSong').textContent = t.title;
+  document.getElementById('npArtist').textContent = t.artist;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('currentTime').textContent = '0:00';
+  buildPlaylist();
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = document.getElementById('playIcon');
+  const vinyl = document.getElementById('vinylDisc');
+  icon.innerHTML = isPlaying
+    ? '<path d="M6 19h4V5H6v14zm8-14v14l11-7z"/>'
+    : '<polygon points="5 3 19 12 5 21 5 3"/>';
+  vinyl.style.animationPlayState = isPlaying ? 'running' : 'paused';
+}
+
+function prevTrack() { currentTrack = (currentTrack - 1 + tracks.length) % tracks.length; loadTrack(); }
+function nextTrack() { currentTrack = (currentTrack + 1) % tracks.length; loadTrack(); }
+
+function toggleShuffle(btn) {
+  btn.style.color = btn.style.color === 'var(--accent-blue)' ? '' : 'var(--accent-blue)';
+}
+function toggleRepeat(btn) {
+  btn.style.color = btn.style.color === 'var(--accent-cyan)' ? '' : 'var(--accent-cyan)';
+}
+
+// Progress simulation
+let pct = 38;
+setInterval(() => {
+  if (!isPlaying) return;
+  pct = (pct + 0.05) % 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  const total = 222; // 3:42 in seconds
+  const cur = Math.floor(total * pct / 100);
+  const m = Math.floor(cur / 60);
+  const s = (cur % 60).toString().padStart(2,'0');
+  document.getElementById('currentTime').textContent = m + ':' + s;
+}, 500);
+
+// ── MUSIC APP SELECTOR ──
+function selectMusicApp(app, btn) {
+  document.querySelectorAll('.music-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── MAP ROADS GENERATION ──
+function generateMapRoads() {
+  const roads = document.getElementById('mapRoads');
+  roads.innerHTML = '';
+  const positions = [8, 18, 27, 37, 45, 52, 62, 73, 83, 92];
+  positions.forEach((p, i) => {
+    const h = document.createElement('div');
+    h.className = 'road-h' + (i % 3 === 0 ? ' major' : '');
+    if (i === 5) h.classList.add('highlight');
+    h.style.top = p + '%';
+    roads.appendChild(h);
+  });
+  const vPositions = [7, 14, 22, 30, 38, 47, 55, 63, 72, 81, 90];
+  vPositions.forEach((p, i) => {
+    const v = document.createElement('div');
+    v.className = 'road-v' + (i % 3 === 0 ? ' major' : '');
+    v.style.left = p + '%';
+    roads.appendChild(v);
+  });
+  // Building blocks
+  const blocks = [
+    {t:10,l:15,w:6,h:5},{t:10,l:24,w:4,h:7},{t:20,l:32,w:8,h:6},
+    {t:15,l:48,w:6,h:8},{t:28,l:57,w:5,h:5},{t:38,l:16,w:7,h:6},
+    {t:50,l:40,w:9,h:7},{t:60,l:65,w:6,h:8},{t:42,l:73,w:8,h:6},
+    {t:70,l:24,w:5,h:5},{t:75,l:50,w:7,h:5},{t:18,l:82,w:6,h:7},
+  ];
+  blocks.forEach(b => {
+    const block = document.createElement('div');
+    block.className = 'map-block';
+    block.style.cssText = `top:${b.t}%;left:${b.l}%;width:${b.w}%;height:${b.h}%`;
+    roads.appendChild(block);
+  });
+}
+
+// ── NAVI APP SELECTOR ──
+const naviDestinations = {
+  kakao: { name: '코엑스몰', time: '23', dist: '12.4', eta: '18:42', turn: '우회전 → 테헤란로', turnDist: '500m 후' },
+  tmap:  { name: '강남역 1번출구', time: '18', dist: '9.2', eta: '18:36', turn: '직진 → 강남대로', turnDist: '300m 후' },
+  naver: { name: '롯데월드타워', time: '31', dist: '17.8', eta: '18:49', turn: '좌회전 → 올림픽대로', turnDist: '800m 후' },
+  google: { name: 'COEX Convention', time: '25', dist: '13.1', eta: '18:44', turn: 'Turn right → Teheran-ro', turnDist: 'In 600m' },
+};
+
+function selectNavi(app, btn) {
+  document.querySelectorAll('.navi-app-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const d = naviDestinations[app];
+  document.getElementById('destName').textContent = d.name;
+  document.getElementById('etaTime').textContent = d.eta;
+  document.querySelector('.dest-label').textContent = d.name;
+  document.querySelectorAll('.eta-val')[1].textContent = d.time;
+  document.querySelectorAll('.eta-val')[2].textContent = d.dist;
+  document.querySelector('.turn-dist').textContent = d.turnDist;
+  document.querySelector('.turn-road').textContent = d.turn;
+}
+
+function setMapMode(mode, btn) {
+  document.querySelectorAll('.map-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── SPEED SIMULATION ──
+let baseSpeed = 62;
+setInterval(() => {
+  const delta = (Math.random() - 0.5) * 4;
+  baseSpeed = Math.max(40, Math.min(90, baseSpeed + delta));
+  document.getElementById('speedVal').textContent = Math.round(baseSpeed);
+  const el = document.getElementById('speedVal');
+  if (baseSpeed > 75) { el.style.color = 'var(--accent-red)'; }
+  else if (baseSpeed > 65) { el.style.color = 'var(--accent-amber)'; }
+  else { el.style.color = 'var(--accent-amber)'; }
+}, 2000);
+
+// ── INIT ──
+buildPlaylist();
+generateMapRoads();
+</script>
+</body>
+</html>
