@@ -1,11 +1,22 @@
 {
-  "background_color": "#ffffff",
-  "dir": "ltr",
-  "display": "standalone",
-  "name": "ssug8s-web.github",
-  "orientation": "any",
-  "scope": "/",
-  "short_name": "ssug8s-web.github",
-  "start_url": "/",
-  "theme_color": "#ffffff"
+  "name": "CarOS Launcher",
+  "short_name": "CarOS",
+  "description": "차량용 안드로이드 런처 - 음악과 내비게이션",
+  "start_url": "/car-launcher/",
+  "display": "fullscreen",
+  "background_color": "#080c14",
+  "theme_color": "#00aaff",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/00aaff/ffffff?text=Car",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/00aaff/ffffff?text=Car",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
